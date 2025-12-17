@@ -8,7 +8,7 @@ function App() {
 
   const initialNewMovieState = {
     title: '',
-    poster: '',
+    poster: '', 
     rating: 10,
     review: '',
     // --- VO est coché par défaut ---
