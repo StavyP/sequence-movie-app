@@ -42,9 +42,34 @@ function App() {
 
 
   // Charger les données au démarrage
-  useEffect(() => {
-    fetchMovies();
-  }, []);
+useEffect(() => {
+  // 1. Charger immédiatement les données du cache pour un affichage instantané
+  const cachedMovies = localStorage.getItem('movies_cache');
+  if (cachedMovies) {
+    setMovies(JSON.parse(cachedMovies));
+  }
+
+  const fetchMovies = async () => {
+    try {
+      const response = await fetch(SCRIPT_URL);
+      const data = await response.json();
+      
+      const formatted = data.map(m => ({
+        ...m,
+        versions: typeof m.versions === 'string' ? JSON.parse(m.versions) : m.versions,
+        tags: typeof m.tags === 'string' ? JSON.parse(m.tags) : m.tags
+      }));
+
+      // 2. Mettre à jour l'état et le cache
+      setMovies(formatted);
+      localStorage.setItem('movies_cache', JSON.stringify(formatted));
+    } catch (error) {
+      console.error("Erreur Sheets:", error);
+    }
+  };
+  
+  fetchMovies();
+}, []);
 
   const fetchMovies = async () => {
     try {
