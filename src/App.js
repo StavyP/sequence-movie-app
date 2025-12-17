@@ -9,7 +9,7 @@ function App() {
   const initialNewMovieState = {
     title: '',
     poster: '',
-    rating: 10,
+    rating: '5', 
     review: '',
     // --- VO est coché par défaut ---
     versions: { VF: false, VO: true }, 
@@ -184,12 +184,12 @@ function App() {
     setSelectedMovie(null);
   };
 
-  const getRatingColor = (rating) => {
-    if (rating >= 16) return 'rating-excellent';
-    if (rating >= 12) return 'rating-good';
-    if (rating >= 8) return 'rating-average';
-    return 'rating-poor';
-  };
+const getRatingColor = (rating) => {
+  if (rating >= 8) return 'rating-excellent';
+  if (rating >= 6) return 'rating-good';
+  if (rating >= 4) return 'rating-average';
+  return 'rating-poor';
+};
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -275,12 +275,12 @@ function App() {
     const watched = movies.filter(m => m.watched !== false).length;
     const avgRating = watched > 0 ? (movies.filter(m => m.watched !== false).reduce((sum, m) => sum + m.rating, 0) / watched).toFixed(1) : 0;
     
-    const byRating = {
-      excellent: movies.filter(m => m.watched !== false && m.rating >= 16).length,
-      good: movies.filter(m => m.watched !== false && m.rating >= 12 && m.rating < 16).length,
-      average: movies.filter(m => m.watched !== false && m.rating >= 8 && m.rating < 12).length,
-      poor: movies.filter(m => m.watched !== false && m.rating < 8).length
-    };
+const byRating = {
+  excellent: movies.filter(m => m.watched !== false && m.rating >= 8).length,
+  good: movies.filter(m => m.watched !== false && m.rating >= 6 && m.rating < 8).length,
+  average: movies.filter(m => m.watched !== false && m.rating >= 4 && m.rating < 6).length,
+  poor: movies.filter(m => m.watched !== false && m.rating < 4).length
+};
     
     // Pour les stats, on compte par genre individuel
     const genreCounts = {};
@@ -325,10 +325,10 @@ function App() {
                           m.review?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchRating = filterRating === 'all' || 
-                          (filterRating === 'excellent' && m.rating >= 16) ||
-                          (filterRating === 'good' && m.rating >= 12 && m.rating < 16) ||
-                          (filterRating === 'average' && m.rating >= 8 && m.rating < 12) ||
-                          (filterRating === 'poor' && m.rating < 8);
+                          (filterRating === 'excellent' && m.rating >= 8) ||
+                          (filterRating === 'good' && m.rating >= 6 && m.rating < 8) ||
+                          (filterRating === 'average' && m.rating >= 4 && m.rating < 6) ||
+                          (filterRating === 'poor' && m.rating < 4);
       
       const matchVersion = filterVersion === 'all' ||
                            (filterVersion === 'VF' && m.versions?.VF) ||
@@ -451,7 +451,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
       <div className="movie-overlay">
         {movie.watched !== false && (
           <div className={`movie-rating ${getRatingColor(movie.rating)}`}>
-            {movie.rating}/20
+            {movie.rating}/10
           </div>
         )}
         
@@ -499,7 +499,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
         {movie.watched !== false ? (
           <div className={`movie-rating ${getRatingColor(movie.rating)}`} style={{ position: 'static', padding: '4px 12px', boxShadow: 'none' }}>
-            {movie.rating}/20
+            {movie.rating}/10
           </div>
         ) : (
           <span style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '0.875rem' }}>À voir</span>
@@ -560,13 +560,13 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
           </div>
           
           {/* Filtres */}
-          <select value={filterRating} onChange={(e) => setFilterRating(e.target.value)} className="sort-select" style={{ minWidth: '150px' }}>
-            <option value="all">Toutes notes</option>
-            <option value="excellent">⭐ Excellent (16+)</option>
-            <option value="good">👍 Bien (12-15)</option>
-            <option value="average">😐 Moyen (8-11)</option>
-            <option value="poor">👎 Décevant (-8)</option>
-          </select>
+<select value={filterRating} onChange={(e) => setFilterRating(e.target.value)} className="sort-select">
+  <option value="all">Toutes notes</option>
+  <option value="excellent">⭐ Excellent (8+)</option>
+  <option value="good">👍 Bien (6-7.5)</option>
+  <option value="average">😐 Moyen (4-5.5)</option>
+  <option value="poor">👎 Décevant (-4)</option>
+</select>
 
           <select value={filterVersion} onChange={(e) => setFilterVersion(e.target.value)} className="sort-select">
             <option value="all">Toutes versions</option>
@@ -669,7 +669,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                   </div>
                   <div style={{ background: '#111827', padding: '16px', borderRadius: '8px' }}>
                     <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Note moyenne</p>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stats.avgRating}/20</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stats.avgRating}/10</p>
                   </div>
                   <div style={{ background: '#111827', padding: '16px', borderRadius: '8px' }}>
                     <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Films vus</p>
@@ -683,10 +683,10 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                   <div style={{ background: '#111827', padding: '16px', borderRadius: '8px' }}>
                     <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '8px' }}>Répartition par note (Vus)</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.875rem' }}>
-                      <div className="rating-excellent" style={{ background: 'none' }}>⭐ Excellent (16+): {stats.byRating.excellent}</div>
-                      <div className="rating-good" style={{ background: 'none' }}>👍 Bien (12-15): {stats.byRating.good}</div>
-                      <div className="rating-average" style={{ background: 'none' }}>😐 Moyen (8-11): {stats.byRating.average}</div>
-                      <div className="rating-poor" style={{ background: 'none' }}>👎 Décevant (-8): {stats.byRating.poor}</div>
+                      <div className="rating-excellent" style={{ background: 'none' }}>⭐ Excellent (8+): {stats.byRating.excellent}</div>
+                      <div className="rating-good" style={{ background: 'none' }}>👍 Bien (6-7.5): {stats.byRating.good}</div>
+                      <div className="rating-average" style={{ background: 'none' }}>😐 Moyen (4-5.5): {stats.byRating.average}</div>
+                      <div className="rating-poor" style={{ background: 'none' }}>👎 Décevant (-4): {stats.byRating.poor}</div>
                     </div>
                   </div>
                   
@@ -708,7 +708,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                         {stats.topMovies.map((m, i) => (
                           <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>{i + 1}. **{m.title}**</span>
-                            <span className={getRatingColor(m.rating)} style={{ padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.75rem' }}>{m.rating}/20</span>
+                            <span className={getRatingColor(m.rating)} style={{ padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.75rem' }}>{m.rating}/10</span>
                           </div>
                         ))}
                       </div>
@@ -837,17 +837,18 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
               />
 
               <div className="form-group">
-                <label className="form-label">Note : {newMovie.rating}/20</label>
+                <label className="form-label">Note : {newMovie.rating}/10</label>
                 <input
                   type="range"
                   min="0"
-                  max="20"
+                  max="10"
+                  step="0.5" // Permet les 0.5, 1.5, etc.
                   value={newMovie.rating}
-                  onChange={(e) => setNewMovie({...newMovie, rating: parseInt(e.target.value)})}
+                  onChange={(e) => setNewMovie({...newMovie, rating: parseFloat(e.target.value)})}
                   className="form-range"
                 />
                 <div className={`rating-display ${getRatingColor(newMovie.rating)}`}>
-                  {newMovie.rating}/20
+                  {newMovie.rating}/10
                 </div>
               </div>
 
@@ -945,21 +946,22 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                 />
 
                 <div className="form-group">
-                  <label className="form-label">Note : {selectedMovie.rating}/20</label>
+                  <label className="form-label">Note : {selectedMovie.rating}/10</label>
                   <input
                     type="range"
                     min="0"
-                    max="20"
+                    max="10"
+                    step="0.5" // Permet les 0.5, 1.5, etc.
                     value={selectedMovie.rating}
                     onChange={(e) => {
-                      const newRating = parseInt(e.target.value);
+                      const newRating = parseFloat(e.target.value);
                       setSelectedMovie({...selectedMovie, rating: newRating});
                       updateMovie(selectedMovie.id, {rating: newRating});
                     }}
                     className="form-range"
                   />
                   <div className={`rating-display ${getRatingColor(selectedMovie.rating)}`}>
-                    {selectedMovie.rating}/20
+                    {selectedMovie.rating}/10
                   </div>
                 </div>
 
