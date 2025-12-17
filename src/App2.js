@@ -4,7 +4,7 @@ import { Plus, X, Search, SortAsc, SortDesc, LayoutGrid, List, BarChart, Upload,
 import './App.css'; 
 
 function App() {
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRsjjMwbFL7HvZbxvChrDC7KFZZsYORIufFAH5gwTj5vxL6It220xMKViIy9sOszMH/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzb1aaQf9_KktiD-TvWCeBQk6IZU2PVMe9Zov4zdImNH59QHRhtQ8pPxo7oV1obvTSK/exec";
   const getTodayDate = () => new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
 
   const initialNewMovieState = {
@@ -40,7 +40,6 @@ function App() {
   const [filterGenre, setFilterGenre] = useState('all');
   const [filterWatched, setFilterWatched] = useState('all');
 
-  const predefinedTags = ['favori', 'revoir', 'decu', 'culte', 'oscar', 'surprise'];
 
   // Charger les données au démarrage
   useEffect(() => {
@@ -158,35 +157,42 @@ function App() {
   };
 
 const updateMovie = async (id, updates) => {
-    if (updates.watched === true && !updates.dateWatched) {
-      // Le film passe à 'Vu' (true) -> On ajoute la date du jour si elle n'est pas déjà dans les updates.
-      updates.dateWatched = getTodayDate();
-  } else if (updates.watched === false) {
-      // Le film passe à 'À voir' (false) -> On retire la date de visionnage.
-      updates.dateWatched = null; // null pour l'objet movie (stockage)
-  }
-
-  const updatedMovies = movies.map(m => m.id === id ? { ...m, ...updates } : m);
-  setMovies(updatedMovies);
-
-  // Préparation des données pour le Sheet
-  const movieToUpdate = updatedMovies.find(m => m.id === id);
-  const dataToSend = {
-    ...movieToUpdate,
-    versions: JSON.stringify(movieToUpdate.versions),
-    tags: JSON.stringify(movieToUpdate.tags)
-  };
-
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({ action: 'update', id: id, movie: dataToSend })
+    const updatedMovies = movies.map(m => {
+      if (m.id === id) {
+        const updated = { ...m, ...updates };
+        // Gestion spéciale de la date si on vient de cocher "vu"
+        if (updates.watched === true && !m.watched) {
+          updated.dateWatched = getTodayDate();
+        }
+        return updated;
+      }
+      return m;
     });
-  } catch (error) {
-    console.error("Erreur de mise à jour:", error);
-  }
-};
+
+    setMovies(updatedMovies);
+
+    // On récupère le film complet mis à jour pour l'envoyer au Sheet
+    const movieToSync = updatedMovies.find(m => m.id === id);
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ 
+          action: 'update', 
+          id: id, 
+          movie: {
+            ...movieToSync,
+            // On s'assure que les objets sont bien envoyés en texte JSON
+            versions: JSON.stringify(movieToSync.versions),
+            tags: JSON.stringify(movieToSync.tags)
+          } 
+        })
+      });
+    } catch (error) {
+      console.error("Erreur de synchro:", error);
+    }
+  };
 
 const deleteMovie = async (id) => {
   const updatedMovies = movies.filter(m => m.id !== id);
@@ -431,17 +437,7 @@ const extractMinutes = (durationString) => {
 
   // --- Composants de rendu ---
 
-  const TagsDisplay = ({ tags }) => (
-    tags && tags.length > 0 && (
-      <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-        {tags.map(tag => (
-          <span key={tag} className="tag-badge">
-            {tag.charAt(0).toUpperCase() + tag.slice(1)}
-          </span>
-        ))}
-      </div>
-    )
-  );
+
 
 const StatusButtons = ({ watched, onToggleWatched }) => {
     // Fonction qui inclut la nouvelle logique : si on passe à 'Vu', on ajoute la date du jour
@@ -511,7 +507,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
           </div>
           {/* FIN DU BLOC */}
 
-          <TagsDisplay tags={movie.tags} />
+ 
         </div>
       </div>
     </div>
@@ -531,7 +527,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
             <span style={{ marginLeft: '12px', color: '#6b7280' }}> | Durée: {formatDuration(movie.duration)}</span>
           )}
         </p>
-        <TagsDisplay tags={movie.tags} />
+    
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
@@ -905,18 +901,8 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                 </button>
               </div>
 
-              <label className="form-label">Tags (cliquer pour ajouter)</label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                {predefinedTags.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleNewMovieTag(tag)}
-                    className={`tag-badge ${newMovie.tags.includes(tag) ? 'active' : ''}`}
-                    style={{ background: newMovie.tags.includes(tag) ? '#a78bfa' : '#374151', cursor: 'pointer', border: 'none' }}
-                  >
-                    {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                  </button>
-                ))}
+
               </div>
 
               <textarea
@@ -1025,18 +1011,8 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                   </button>
                 </div>
                 
-                <label className="form-label">Tags</label>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {predefinedTags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleSelectedMovieTag(tag)}
-                      className={`tag-badge ${selectedMovie.tags?.includes(tag) ? 'active' : ''}`}
-                      style={{ background: selectedMovie.tags?.includes(tag) ? '#a78bfa' : '#374151', cursor: 'pointer', border: 'none' }}
-                    >
-                      {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                    </button>
-                  ))}
+
                 </div>
 
                 <textarea
