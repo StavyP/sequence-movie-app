@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-// Importation des icônes
 import { Plus, X, Search, SortAsc, SortDesc, LayoutGrid, List, BarChart, Upload, Download } from 'lucide-react'; 
 import './App.css'; 
 
 function App() {
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzb1aaQf9_KktiD-TvWCeBQk6IZU2PVMe9Zov4zdImNH59QHRhtQ8pPxo7oV1obvTSK/exec";
   const getTodayDate = () => new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
 
   const initialNewMovieState = {
@@ -11,11 +11,9 @@ function App() {
     poster: '', 
     rating: 10,
     review: '',
-    // --- VO est coché par défaut ---
     versions: { VF: false, VO: true }, 
-    // ---------------------------------
     year: new Date().getFullYear(),
-    duration: '', // Ex: "120 min"
+    duration: '', 
     director: '',
     actors: '',
     genre: '', 
@@ -29,7 +27,7 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [sortBy, setSortBy] = useState('dateWatched'); 
-  const [sortDirection, setSortDirection] = useState('desc'); // État pour la direction de tri
+  const [sortDirection, setSortDirection] = useState('desc');
   const [searchTerm, setSearchTerm] = useState('');
   const [newMovie, setNewMovie] = useState(initialNewMovieState);
   const [showStats, setShowStats] = useState(false);
@@ -38,22 +36,42 @@ function App() {
   const [filterVersion, setFilterVersion] = useState('all');
   const [filterGenre, setFilterGenre] = useState('all');
   const [filterWatched, setFilterWatched] = useState('all');
+  const [tempMovie, setTempMovie] = useState(null);
 
-  const predefinedTags = ['favori', 'revoir', 'decu', 'culte', 'oscar', 'surprise'];
+useEffect(() => {
+  const cachedMovies = localStorage.getItem('movies_cache');
+  if (cachedMovies) {
+    setMovies(JSON.parse(cachedMovies));
+  }
 
-  // Charger les données au démarrage
-  useEffect(() => {
-    loadMovies();
-  }, []);
-
-  const loadMovies = () => {
+  const fetchMovies = async () => {
     try {
-      const data = localStorage.getItem('movies-list');
-      if (data) {
-        setMovies(JSON.parse(data));
-      }
+      const response = await fetch(SCRIPT_URL);
+      const data = await response.json();
+      
+      const formatted = data.map(m => ({
+        ...m,
+        versions: typeof m.versions === 'string' ? JSON.parse(m.versions) : m.versions,
+        tags: typeof m.tags === 'string' ? JSON.parse(m.tags) : m.tags
+      }));
+
+      setMovies(formatted);
+      localStorage.setItem('movies_cache', JSON.stringify(formatted));
     } catch (error) {
-      console.log('Aucune donnée sauvegardée trouvée');
+      console.error("Erreur Sheets:", error);
+    }
+  };
+  
+  fetchMovies();
+}, []);
+
+  const fetchMovies = async () => {
+    try {
+      const response = await fetch(SCRIPT_URL);
+      const data = await response.json();
+      setMovies(data);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données:', error);
     }
   };
 
@@ -65,9 +83,6 @@ function App() {
     }
   };
   
-  /**
-   * Fonction pour exporter les données du localStorage vers un fichier JSON.
-   */
   const handleExportMovies = () => {
     const data = localStorage.getItem('movies-list');
     if (!data || data === '[]') {
@@ -76,11 +91,9 @@ function App() {
     }
 
     const filename = `sequence_export_${getTodayDate()}.json`;
-    // Création d'un Blob pour le téléchargement
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
-    // Création d'un lien invisible pour déclencher le téléchargement
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
@@ -91,98 +104,119 @@ function App() {
     alert(`Données exportées dans ${filename}!`);
   };
 
-  /**
-   * Fonction pour importer les données à partir d'un fichier JSON.
-   */
   const handleImportMovies = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+   const file = event.target.files[0];
+  if (!file) return;
 
-    // Vérification du type de fichier de base
-    if (file.type !== "application/json" && !file.name.toLowerCase().endsWith('.json')) {
-      alert("Veuillez sélectionner un fichier JSON valide.");
-      // Réinitialiser le champ de fichier après l'erreur
-      event.target.value = ''; 
-      return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const allMovies = JSON.parse(e.target.result);
+      const dataToSend = allMovies.map(m => ({
+        ...m,
+        versions: JSON.stringify(m.versions),
+        tags: JSON.stringify(m.tags)
+      }));
+
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bulk_add', movies: dataToSend })
+      });
+
+      alert("Importation terminée en un seul bloc !");
+      window.location.reload();
+    } catch (err) {
+      alert("Erreur de format de fichier");
     }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const importedData = JSON.parse(e.target.result);
-        
-        // Validation simple: doit être un tableau
-        if (!Array.isArray(importedData)) {
-            alert("Erreur: Le contenu du fichier JSON n'est pas un format de liste de films valide.");
-            event.target.value = '';
-            return;
-        }
-
-        const overwrite = window.confirm(
-          `Êtes-vous sûr de vouloir IMPORTER ${importedData.length} films ?\nCeci va REMPLACER toutes vos données actuelles. Continuer ?`
-        );
-
-        if (overwrite) {
-          // Mise à jour du state et du localStorage
-          setMovies(importedData);
-          saveMovies(importedData);
-          alert(`Succès! ${importedData.length} films importés.`);
-        }
-        
-      } catch (error) {
-        console.error("Erreur lors de la lecture ou de l'analyse du fichier:", error);
-        alert("Erreur lors de l'importation. Assurez-vous que le fichier est un JSON valide.");
-      }
-      // Toujours réinitialiser le champ de fichier pour permettre un nouvel import
-      event.target.value = ''; 
-    };
-    reader.readAsText(file);
   };
+  reader.readAsText(file);
+  }; 
 
-  const addMovie = () => {
+  const addMovie = async () => {
     if (!newMovie.title || !newMovie.poster) return;
     
     const movie = {
-      id: Date.now(),
       ...newMovie, 
-      dateAdded: new Date().toISOString()
+      id: Date.now(), 
+      dateAdded: new Date().toISOString(),
+      versions: JSON.stringify(newMovie.versions),
+      tags: JSON.stringify(newMovie.tags)
     };
-    
-    const updatedMovies = [...movies, movie];
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
-    
-    // Réinitialiser la date du jour pour l'état initial (prêt pour un nouvel ajout)
-    setNewMovie({...initialNewMovieState, dateWatched: getTodayDate()}); 
-    setShowAddModal(false);
-  };
 
-  const updateMovie = (id, updates) => {
-    // Logique pour mettre à jour automatiquement la date de visionnage
-    if (updates.watched === true && !updates.dateWatched) {
-        // Le film passe à 'Vu' (true) -> On ajoute la date du jour si elle n'est pas déjà dans les updates.
-        updates.dateWatched = getTodayDate();
-    } else if (updates.watched === false) {
-        // Le film passe à 'À voir' (false) -> On retire la date de visionnage.
-        updates.dateWatched = null; // null pour l'objet movie (stockage)
-    }
-    
-    const updatedMovies = movies.map(m => m.id === id ? { ...m, ...updates } : m);
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
-    
-    // Si le film sélectionné est mis à jour, on met à jour l'état local du modal aussi
-    if (selectedMovie && selectedMovie.id === id) {
-        setSelectedMovie(prev => ({ ...prev, ...updates }));
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', movie: movie })
+      });
+      
+      setMovies([...movies, { ...movie, versions: JSON.parse(movie.versions), tags: JSON.parse(movie.tags) }]);
+      setNewMovie({...initialNewMovieState, dateWatched: getTodayDate()}); 
+      setShowAddModal(false);
+    } catch (error) {
+      console.error("Erreur d'ajout:", error);
     }
   };
 
-  const deleteMovie = (id) => {
-    const updatedMovies = movies.filter(m => m.id !== id);
-    setMovies(updatedMovies);
-    saveMovies(updatedMovies);
-    setSelectedMovie(null);
-  };
+const updateMovie = async (id, updates) => {
+  setMovies(prevMovies => {
+    const newMovies = prevMovies.map(m => {
+      if (m.id === id) {
+        const updated = { ...m, ...updates };
+        if (updates.watched === true && !m.watched) {
+          updated.dateWatched = getTodayDate();
+        }
+        return updated;
+      }
+      return m;
+    });
+    localStorage.setItem('movies_cache', JSON.stringify(newMovies));
+    return newMovies;
+  });
+
+  const movieToSync = [...movies].find(m => m.id === id);
+  if (!movieToSync) return;
+
+  const finalMovie = { ...movieToSync, ...updates };
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ 
+        action: 'update', 
+        id: id, 
+        movie: {
+          ...finalMovie,
+          versions: JSON.stringify(finalMovie.versions),
+          tags: JSON.stringify(finalMovie.tags)
+        } 
+      })
+    });
+  } catch (error) {
+    console.error("Erreur de synchro réseau:", error);
+  }
+};
+
+const deleteMovie = async (id) => {
+  const updatedMovies = movies.filter(m => m.id !== id);
+  setMovies(updatedMovies);
+  setSelectedMovie(null);
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'delete', id: id })
+    });
+  } catch (error) {
+    console.error("Erreur de suppression:", error);
+  }
+};
 
   const getRatingColor = (rating) => {
     if (rating >= 16) return 'rating-excellent';
@@ -194,7 +228,7 @@ function App() {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const datePart = dateString.includes('T') ? dateString.split('T')[0] : dateString;
-    const date = new Date(datePart.replace(/-/g, '/')); // Correction pour la compatibilité
+    const date = new Date(datePart.replace(/-/g, '/'));
     if (isNaN(date)) return dateString;
 
     return date.toLocaleDateString('fr-FR', { 
@@ -205,15 +239,28 @@ function App() {
   };
 
   /**
-   * Extrait la durée en minutes d'une chaîne (ex: "120 min")
    * @param {string} durationString 
    * @returns {number} Durée en minutes
    */
-  const extractMinutes = (durationString) => {
-    if (!durationString) return 0;
-    const match = durationString.match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : 0;
-  };
+
+const extractMinutes = (durationString) => {
+  if (durationString === null || durationString === undefined || durationString === '') {
+    return 0;
+  }
+
+  const str = String(durationString).toLowerCase().trim();
+
+  if (str.includes('h')) {
+    const parts = str.split('h');
+    const hours = parseInt(parts[0], 10) || 0;
+    const minutesMatch = parts[1].match(/(\d+)/);
+    const minutes = minutesMatch ? parseInt(minutesMatch[1], 10) : 0;
+    return (hours * 60) + minutes;
+  }
+  
+  const match = str.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
 
   /**
    * Convertit une durée en minutes au format "XXh XXm" en ajoutant un zéro aux minutes si nécessaire
@@ -232,14 +279,11 @@ function App() {
       parts.push(`${hours}h`);
     }
     
-    // Ajout du zéro en tête pour les minutes si elles sont supérieures à 0
     if (minutes > 0) {
-      // Utilise padStart pour s'assurer d'avoir au moins deux chiffres (ex: 5 devient 05)
       const paddedMinutes = String(minutes).padStart(2, '0'); 
       parts.push(`${paddedMinutes}m`);
     }
     
-    // Si la durée est inférieure à une heure, on affiche juste les minutes (ex: 45m)
     if (parts.length === 0 && totalMinutes > 0) {
          const paddedMinutes = String(totalMinutes).padStart(2, '0'); 
          return `${paddedMinutes}m`;
@@ -256,7 +300,6 @@ function App() {
     const genresSet = new Set();
     movies.forEach(movie => {
       if (movie.genre) {
-        // Nettoyer et diviser la chaîne de genres par virgule
         const movieGenres = movie.genre
           .split(',')
           .map(g => g.trim())
@@ -282,7 +325,6 @@ function App() {
       poor: movies.filter(m => m.watched !== false && m.rating < 8).length
     };
     
-    // Pour les stats, on compte par genre individuel
     const genreCounts = {};
     movies.forEach(movie => {
       if (movie.genre) {
@@ -331,16 +373,16 @@ function App() {
                           (filterRating === 'poor' && m.rating < 8);
       
       const matchVersion = filterVersion === 'all' ||
-                           (filterVersion === 'VF' && m.versions?.VF) ||
-                           (filterVersion === 'VO' && m.versions?.VO);
+                          (filterVersion === 'VF' && m.versions?.VF) ||
+                          (filterVersion === 'VO' && m.versions?.VO);
       
       // LOGIQUE DE FILTRAGE PAR GENRE
       const matchGenre = filterGenre === 'all' || 
-                         (m.genre && m.genre.split(',').map(g => g.trim()).includes(filterGenre));
+                          (m.genre && m.genre.split(',').map(g => g.trim()).includes(filterGenre));
       
       const matchWatched = filterWatched === 'all' ||
-                           (filterWatched === 'watched' && m.watched !== false) ||
-                           (filterWatched === 'toWatch' && m.watched === false);
+                          (filterWatched === 'watched' && m.watched !== false) ||
+                          (filterWatched === 'toWatch' && m.watched === false);
       
       return matchSearch && matchRating && matchVersion && matchGenre && matchWatched;
     });
@@ -362,14 +404,11 @@ function App() {
           comparison = extractMinutes(b.duration) - extractMinutes(a.duration);
           break;
         case 'dateWatched':
-          // Correction pour utiliser la date de visionnage uniquement. 
-          // Le || 0 garantit que les films "À voir" (dateWatched est null ou '') sont triés à la fin.
           const dateA = new Date(a.dateWatched || 0); 
           const dateB = new Date(b.dateWatched || 0);
           
           comparison = dateB.getTime() - dateA.getTime();
           
-          // NOUVEAU: Si les dates sont identiques (même jour), trier par ID (ordre de saisie).
           if (comparison === 0) {
               comparison = b.id - a.id; 
           }
@@ -382,7 +421,6 @@ function App() {
           break;
       }
 
-      // Appliquer la direction
       return sortDirection === 'desc' ? comparison : -comparison;
     };
 
@@ -391,22 +429,7 @@ function App() {
 
   const sortedAndFilteredMovies = getSortedMovies();
 
-  // --- Composants de rendu ---
-
-  const TagsDisplay = ({ tags }) => (
-    tags && tags.length > 0 && (
-      <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-        {tags.map(tag => (
-          <span key={tag} className="tag-badge">
-            {tag.charAt(0).toUpperCase() + tag.slice(1)}
-          </span>
-        ))}
-      </div>
-    )
-  );
-
 const StatusButtons = ({ watched, onToggleWatched }) => {
-    // Fonction qui inclut la nouvelle logique : si on passe à 'Vu', on ajoute la date du jour
     const handleToggle = (newWatchedState) => {
         let updates = { watched: newWatchedState };
         onToggleWatched(updates); 
@@ -416,9 +439,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
         <div style={{ marginBottom: '16px' }}>
             <label className="form-label">Statut</label>
             <div className="version-buttons">
-                {/* --- Bouton Vu --- */}
                 <button
-                    // Si on clique sur 'Vu' (true)
                     onClick={() => handleToggle(true)}
                     className={`btn-version ${watched !== false ? 'active btn-version-vf' : 'btn-version-vf'}`}
                     style={{ 
@@ -428,9 +449,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                 >
                     ✅ Vu
                 </button>
-                {/* --- Bouton À voir --- */}
                 <button
-                    // Si on clique sur 'À voir' (false)
                     onClick={() => handleToggle(false)}
                     className={`btn-version ${watched === false ? 'active btn-version-vo' : 'btn-version-vo'}`}
                     style={{ 
@@ -458,8 +477,6 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
         <div className="movie-info">
           <h3 className="movie-title">{movie.title}</h3>
           {movie.year && <p style={{ fontSize: '0.65rem', color: '#9ca3af', marginBottom: '4px' }}>({movie.year})</p>}
-          
-          {/* AFFICHAGE VERSIONS ET DURÉE AMÉLIORÉ */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
             <div className="movie-versions">
               {movie.versions?.VF && <span className="version-badge version-vf">VF</span>}
@@ -471,9 +488,6 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                 </span>
             )}
           </div>
-          {/* FIN DU BLOC */}
-
-          <TagsDisplay tags={movie.tags} />
         </div>
       </div>
     </div>
@@ -493,7 +507,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
             <span style={{ marginLeft: '12px', color: '#6b7280' }}> | Durée: {formatDuration(movie.duration)}</span>
           )}
         </p>
-        <TagsDisplay tags={movie.tags} />
+    
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
@@ -867,18 +881,8 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                 </button>
               </div>
 
-              <label className="form-label">Tags (cliquer pour ajouter)</label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                {predefinedTags.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleNewMovieTag(tag)}
-                    className={`tag-badge ${newMovie.tags.includes(tag) ? 'active' : ''}`}
-                    style={{ background: newMovie.tags.includes(tag) ? '#a78bfa' : '#374151', cursor: 'pointer', border: 'none' }}
-                  >
-                    {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                  </button>
-                ))}
+
               </div>
 
               <textarea
@@ -897,23 +901,46 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
 
       {/* Modal Detail */}
       {selectedMovie && (
-        <div className="modal-backdrop" onClick={() => setSelectedMovie(null)}>
+        <div className="modal-backdrop" onClick={() => {
+          // Sauvegarde finale à la fermeture pour être certain que tout est synchro
+          updateMovie(selectedMovie.id, selectedMovie);
+          setSelectedMovie(null);
+        }}>
           <div className="modal modal-detail" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
               <img src={selectedMovie.poster} alt={selectedMovie.title} className="modal-poster" />
               <div className="modal-info">
                 <div className="modal-header">
-                  <h2 className="modal-title">{selectedMovie.title}</h2>
-                  <button onClick={() => setSelectedMovie(null)} className="btn-close">
+                  {/* Utilisation de onChange pour la réactivité et onBlur pour la sauvegarde réseau */}
+
+                  <button onClick={() => {
+                    updateMovie(selectedMovie.id, selectedMovie);
+                    setSelectedMovie(null);
+                  }} className="btn-close">
                     <X size={24} />
                   </button>
                 </div>
 
-                {/* StatusButtons gère la mise à jour pour le film sélectionné, updateMovie gère l'effacement/ajout de la date */}
-                <StatusButtons 
-                  watched={selectedMovie.watched} 
-                  onToggleWatched={(updates) => updateMovie(selectedMovie.id, updates)}
-                />
+<StatusButtons 
+  watched={selectedMovie.watched} 
+  onToggleWatched={(updates) => {
+    // 1. Déterminer la nouvelle date selon le bouton cliqué
+    const isNowWatched = updates.watched;
+    const newDate = isNowWatched ? getTodayDate() : '';
+    
+    // 2. Créer l'objet complet mis à jour
+    const updatedFields = { 
+      watched: isNowWatched, 
+      dateWatched: newDate 
+    };
+
+    // 3. Mise à jour de l'affichage local du modal (pour l'input date)
+    setSelectedMovie({ ...selectedMovie, ...updatedFields });
+
+    // 4. Mise à jour de la liste globale et envoi au Google Sheet
+    updateMovie(selectedMovie.id, updatedFields);
+  }}
+/>
                 
                 <div className="form-group">
                   <label className="form-label">Date de visionnage</label>
@@ -941,6 +968,7 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                     setSelectedMovie({...selectedMovie, title: e.target.value});
                     updateMovie(selectedMovie.id, {title: e.target.value});
                   }}
+                  onBlur={(e) => updateMovie(selectedMovie.id, {title: e.target.value})}
                   className="form-input"
                 />
 
@@ -986,43 +1014,50 @@ const StatusButtons = ({ watched, onToggleWatched }) => {
                     VO
                   </button>
                 </div>
-                
-                <label className="form-label">Tags</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {predefinedTags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleSelectedMovieTag(tag)}
-                      className={`tag-badge ${selectedMovie.tags?.includes(tag) ? 'active' : ''}`}
-                      style={{ background: selectedMovie.tags?.includes(tag) ? '#a78bfa' : '#374151', cursor: 'pointer', border: 'none' }}
-                    >
-                      {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                    </button>
-                  ))}
-                </div>
 
                 <textarea
                   placeholder="Votre avis..."
                   value={selectedMovie.review || ''}
-                  onChange={(e) => {
-                    setSelectedMovie({...selectedMovie, review: e.target.value});
-                    updateMovie(selectedMovie.id, {review: e.target.value});
-                  }}
+                  onChange={(e) => setSelectedMovie({...selectedMovie, review: e.target.value})}
+                  onBlur={(e) => updateMovie(selectedMovie.id, {review: e.target.value})}
                   className="form-textarea"
                 />
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <input type="text" placeholder="Année" value={selectedMovie.year || ''} onChange={(e) => updateMovie(selectedMovie.id, {year: parseInt(e.target.value) || ''})} className="form-input" />
-                  <input type="text" placeholder="Durée" value={selectedMovie.duration || ''} onChange={(e) => updateMovie(selectedMovie.id, {duration: e.target.value})} className="form-input" />
-                  <input type="text" placeholder="Genre(s) (séparés par une virgule)" value={selectedMovie.genre || ''} onChange={(e) => updateMovie(selectedMovie.id, {genre: e.target.value})} className="form-input" />
-                  <input type="text" placeholder="Plateforme" value={selectedMovie.platform || ''} onChange={(e) => updateMovie(selectedMovie.id, {platform: e.target.value})} className="form-input" />
-                  <input type="text" placeholder="Réalisateur" value={selectedMovie.director || ''} onChange={(e) => updateMovie(selectedMovie.id, {director: e.target.value})} className="form-input" style={{ gridColumn: 'span 2' }} />
-                  <input type="text" placeholder="Acteurs" value={selectedMovie.actors || ''} onChange={(e) => updateMovie(selectedMovie.id, {actors: e.target.value})} className="form-input" style={{ gridColumn: 'span 2' }} />
+                  <input type="text" placeholder="Année" value={selectedMovie.year || ''} 
+                    onChange={(e) => setSelectedMovie({...selectedMovie, year: e.target.value})}
+                    onBlur={(e) => updateMovie(selectedMovie.id, {year: parseInt(e.target.value) || ''})} 
+                    className="form-input" />
+                  
+                  <input type="text" placeholder="Durée" value={selectedMovie.duration || ''} 
+                    onChange={(e) => setSelectedMovie({...selectedMovie, duration: e.target.value})}
+                    onBlur={(e) => updateMovie(selectedMovie.id, {duration: e.target.value})} 
+                    className="form-input" />
+                  
+                  <input type="text" placeholder="Genre(s)" value={selectedMovie.genre || ''} 
+                    onChange={(e) => setSelectedMovie({...selectedMovie, genre: e.target.value})}
+                    onBlur={(e) => updateMovie(selectedMovie.id, {genre: e.target.value})} 
+                    className="form-input" />
+                  
+                  <input type="text" placeholder="Plateforme" value={selectedMovie.platform || ''} 
+                    onChange={(e) => setSelectedMovie({...selectedMovie, platform: e.target.value})}
+                    onBlur={(e) => updateMovie(selectedMovie.id, {platform: e.target.value})} 
+                    className="form-input" />
+                  
+                  <input type="text" placeholder="Réalisateur" value={selectedMovie.director || ''} 
+                    onChange={(e) => setSelectedMovie({...selectedMovie, director: e.target.value})}
+                    onBlur={(e) => updateMovie(selectedMovie.id, {director: e.target.value})} 
+                    className="form-input" style={{ gridColumn: 'span 2' }} />
+                  
+                  <input type="text" placeholder="Acteurs" value={selectedMovie.actors || ''} 
+                    onChange={(e) => setSelectedMovie({...selectedMovie, actors: e.target.value})}
+                    onBlur={(e) => updateMovie(selectedMovie.id, {actors: e.target.value})} 
+                    className="form-input" style={{ gridColumn: 'span 2' }} />
                 </div>
 
                 <button 
                   onClick={() => {
-                    if(window.confirm(`Êtes-vous sûr de vouloir supprimer \"${selectedMovie.title}\" ?`)) {
+                    if(window.confirm(`Êtes-vous sûr de vouloir supprimer "${selectedMovie.title}" ?`)) {
                       deleteMovie(selectedMovie.id);
                     }
                   }}
