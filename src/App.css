@@ -881,3 +881,797 @@
     padding: 10px 12px;
   }
 }
+
+@media (max-width: 768px) {
+  /* Réduction de l'espacement global */
+  .app {
+    padding: 12px;
+  }
+
+  .header {
+    flex-direction: row; /* On garde le titre et bouton sur une ligne */
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  /* Adaptation des contrôles (Recherche, Filtres) */
+  .controls {
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .controls > * {
+    height: 40px; /* Moins haut sur mobile */
+  }
+
+  .search-container {
+    min-width: 100%;
+  }
+
+  /* Grille de films : 2 colonnes bien espacées */
+  .movies-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .movie-card {
+    max-width: 100%;
+  }
+
+  .movie-title {
+    font-size: 0.8rem;
+  }
+
+  /* MODAL : Plein écran sur mobile */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end; /* Apparaît depuis le bas */
+  }
+
+  .modal {
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0; /* Arrondi seulement en haut */
+    max-width: 100vw;
+    width: 100%;
+    padding: 16px;
+  }
+
+  /* Contenu du Modal Detail */
+  .modal-content {
+    flex-direction: column; /* Poster au dessus des infos */
+    gap: 16px;
+  }
+
+  .modal-poster {
+    width: 120px; /* Plus petit pour laisser de la place au texte */
+    height: 180px;
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+
+  /* Formulaire dans le modal */
+  .modal-info {
+    grid-template-columns: 1fr; /* Tout sur une seule colonne */
+    gap: 12px;
+  }
+
+  .modal-info > * {
+    grid-column: span 1 !important;
+  }
+
+  /* Grille interne pour Année/Durée (on garde 2 colonnes pour ces petits champs) */
+  .modal-info div[style*="grid-template-columns: 1fr 1fr"] {
+    gap: 8px !important;
+  }
+
+  .form-input, .form-textarea {
+    font-size: 16px; /* Évite le zoom auto de l'iPhone sur les inputs */
+    padding: 10px;
+  }
+
+  /* Boutons de version plus larges pour le tactile */
+  .btn-version {
+    padding: 12px 8px;
+  }
+
+  /* Vue Liste */
+  .movie-list-item {
+    padding: 10px;
+  }
+  
+  .list-poster {
+    width: 50px;
+    height: 75px;
+  }
+}
+/* ========================================
+   RESPONSIVE DESIGN - MOBILE FIRST
+   ======================================== */
+
+/* Extra Small Devices - Phones Portrait (320px - 479px) */
+@media (max-width: 479px) {
+  .app {
+    padding: 8px;
+  }
+
+  .container {
+    padding: 0;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .title {
+    font-size: 1.75rem;
+    text-align: center;
+    letter-spacing: -0.5px;
+  }
+
+  .header > div {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .controls > * {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .search-container {
+    min-width: 100%;
+  }
+
+  .search-input {
+    font-size: 16px;
+    padding: 12px 12px 12px 40px;
+  }
+
+  .sort-select {
+    font-size: 16px;
+    padding: 12px;
+    min-width: 100%;
+  }
+
+  .sort-container {
+    width: 100%;
+  }
+
+  /* Grille 3 colonnes ultra-compactes */
+  .movies-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+
+  .movie-card {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  .movie-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .movie-title {
+    font-size: 0.65rem;
+    line-height: 1.1;
+    padding: 0 2px;
+    margin-bottom: 3px;
+    -webkit-line-clamp: 2;
+  }
+
+  .movie-rating {
+    padding: 2px 5px;
+    font-size: 0.6rem;
+    top: 4px;
+    right: 4px;
+    border-radius: 4px;
+    border-width: 1px;
+  }
+
+  .version-badge {
+    font-size: 0.55rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .duration-badge {
+    font-size: 0.55rem;
+    padding: 1px 4px;
+  }
+
+  .movie-info {
+    padding: 6px 4px;
+  }
+
+  .movie-info > p {
+    font-size: 0.6rem;
+    margin-bottom: 2px;
+  }
+
+  .movie-versions {
+    gap: 3px;
+  }
+
+  .movie-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.75) 25%, transparent 100%);
+  }
+
+  /* Vue Liste Mobile */
+  .movie-list-item {
+    padding: 8px;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .list-poster {
+    width: 45px;
+    height: 68px;
+  }
+
+  .movie-list-item .movie-title {
+    font-size: 0.85rem;
+  }
+
+  /* Modals Mobile - Full Screen */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-height: 95vh;
+    height: 95vh;
+    border-radius: 20px 20px 0 0;
+    max-width: 100vw;
+    width: 100%;
+    padding: 12px;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .modal-body > * {
+    grid-column: span 1 !important;
+  }
+
+  .modal-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .modal-poster {
+    width: 100px;
+    height: 150px;
+    margin: 0 auto;
+  }
+
+  .modal-info {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .modal-info > * {
+    grid-column: span 1 !important;
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 16px;
+    padding: 10px;
+  }
+
+  .form-label {
+    font-size: 0.7rem;
+  }
+
+  .btn-version {
+    padding: 10px 8px;
+    font-size: 0.85rem;
+  }
+
+  .btn-add,
+  .btn-delete {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+
+  /* Stats Mobile */
+  .empty-state {
+    margin-top: 40px;
+  }
+
+  .empty-state-title {
+    font-size: 1.1rem;
+  }
+
+  .empty-state-text {
+    font-size: 0.9rem;
+  }
+}
+
+/* Small Devices - Phones Landscape & Small Tablets (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .app {
+    padding: 12px;
+  }
+
+  .header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .controls > * {
+    height: 44px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .movie-card {
+    max-width: 100%;
+  }
+
+  .movie-title {
+    font-size: 0.75rem;
+  }
+
+  .movie-rating {
+    padding: 4px 7px;
+    font-size: 0.7rem;
+  }
+
+  .modal {
+    max-height: 90vh;
+    max-width: 95vw;
+    padding: 16px;
+  }
+
+  .modal-poster {
+    width: 120px;
+    height: 180px;
+  }
+}
+
+/* Medium Devices - Tablets (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 2.25rem;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .search-container {
+    flex: 1;
+    min-width: 300px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .movie-card {
+    max-width: 100%;
+  }
+
+  .modal {
+    max-width: 700px;
+    max-height: 90vh;
+  }
+
+  .modal-body {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .modal-poster {
+    width: 140px;
+    height: 210px;
+  }
+}
+
+/* Large Devices - Desktops (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .container {
+    max-width: 1200px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+  }
+
+  .movie-card {
+    max-width: 220px;
+  }
+
+  .modal {
+    max-width: 750px;
+  }
+
+  .modal-detail {
+    max-width: 950px;
+  }
+}
+
+/* Extra Large Devices - Large Desktops (1440px - 1919px) */
+@media (min-width: 1440px) and (max-width: 1919px) {
+  .container {
+    max-width: 1400px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 20px;
+  }
+
+  .movie-card {
+    max-width: 220px;
+  }
+
+  .title {
+    font-size: 2.75rem;
+  }
+}
+
+/* 2K/QHD Displays (1920px - 2559px) */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  .container {
+    max-width: 2400px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 24px;
+  }
+
+  .title {
+    font-size: 3rem;
+  }
+
+  .btn {
+    font-size: 1rem;
+    padding: 14px 26px;
+  }
+
+  .search-input,
+  .sort-select {
+    font-size: 1rem;
+  }
+
+  .movie-card {
+    max-width: 240px;
+  }
+
+  .movie-title {
+    font-size: 0.95rem;
+  }
+
+  .modal {
+    max-width: 850px;
+  }
+
+  .modal-detail {
+    max-width: 1200px;
+  }
+
+  .modal-poster {
+    width: 160px;
+    height: 240px;
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 0.95rem;
+  }
+}
+
+/* 4K/UHD Displays (2560px - 3839px) */
+@media (min-width: 2560px) and (max-width: 3839px) {
+  .container {
+    max-width: 3200px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 28px;
+  }
+
+  .title {
+    font-size: 3.5rem;
+    letter-spacing: -1px;
+  }
+
+  .btn {
+    font-size: 1.05rem;
+    padding: 16px 30px;
+  }
+
+  .search-input,
+  .sort-select {
+    font-size: 1.05rem;
+    padding: 14px;
+  }
+
+  .movie-card {
+    max-width: 280px;
+  }
+
+  .movie-title {
+    font-size: 1rem;
+  }
+
+  .movie-rating {
+    font-size: 0.9rem;
+    padding: 8px 14px;
+  }
+
+  .version-badge {
+    font-size: 0.8rem;
+  }
+
+  .duration-badge {
+    font-size: 0.75rem;
+  }
+
+  .modal {
+    max-width: 950px;
+    padding: 28px;
+  }
+
+  .modal-detail {
+    max-width: 1400px;
+  }
+
+  .modal-title {
+    font-size: 1.4rem;
+  }
+
+  .modal-poster {
+    width: 180px;
+    height: 270px;
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+  }
+}
+
+/* 8K/FUHD Displays (3840px+) */
+@media (min-width: 3840px) {
+  .container {
+    max-width: 4800px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 36px;
+  }
+
+  .title {
+    font-size: 4.5rem;
+    letter-spacing: -1.5px;
+  }
+
+  .btn {
+    font-size: 1.2rem;
+    padding: 18px 36px;
+  }
+
+  .search-input,
+  .sort-select {
+    font-size: 1.2rem;
+    padding: 18px;
+  }
+
+  .search-input {
+    padding-left: 50px;
+  }
+
+  .search-icon {
+    left: 16px;
+  }
+
+  .movie-card {
+    max-width: 360px;
+  }
+
+  .movie-title {
+    font-size: 1.2rem;
+  }
+
+  .movie-rating {
+    font-size: 1rem;
+    padding: 10px 16px;
+  }
+
+  .version-badge {
+    font-size: 0.9rem;
+    padding: 4px 10px;
+  }
+
+  .duration-badge {
+    font-size: 0.85rem;
+    padding: 4px 10px;
+  }
+
+  .modal {
+    max-width: 1200px;
+    padding: 36px;
+  }
+
+  .modal-detail {
+    max-width: 1800px;
+  }
+
+  .modal-title {
+    font-size: 1.75rem;
+  }
+
+  .modal-poster {
+    width: 220px;
+    height: 330px;
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 1.15rem;
+    padding: 14px;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+  }
+
+  .btn-version {
+    font-size: 1.05rem;
+  }
+
+  .btn-add,
+  .btn-delete {
+    font-size: 1.1rem;
+    padding: 14px;
+  }
+
+  .movie-list-item {
+    padding: 20px;
+  }
+
+  .list-poster {
+    width: 80px;
+    height: 120px;
+  }
+}
+
+/* Landscape Orientation Adjustments */
+@media (max-width: 767px) and (orientation: landscape) {
+  .modal {
+    max-height: 98vh;
+  }
+
+  .modal-content {
+    flex-direction: row;
+  }
+
+  .modal-poster {
+    width: 100px;
+    height: 150px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .btn,
+  .btn-version,
+  .form-input,
+  .form-textarea,
+  .sort-select {
+    min-height: 44px;
+  }
+
+  .movie-card:active {
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .movie-card,
+  .modal,
+  .btn {
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .app {
+    background: white;
+    color: black;
+  }
+
+  .header > div,
+  .controls,
+  .btn-add,
+  .btn-delete,
+  .btn-close {
+    display: none;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .movie-card {
+    break-inside: avoid;
+  }
+}
